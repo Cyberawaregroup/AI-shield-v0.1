@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Layout } from "./components/layout"
 import { Dashboard } from "./components/dashboard"
 import { UserProfile } from "./components/user-profile"
@@ -10,9 +10,27 @@ import { AdminPortal } from "./components/admin-portal"
 import { EnhancedScamDetection } from "./components/enhanced-scam-detection"
 // Add import for cybercrime categories
 import { CybercrimeCategories } from "./components/cybercrime-categories"
+import { useRouter } from "next/navigation";
+import ReportScamForm from "./components/report";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState("dashboard")
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const path = window.location.pathname;
+    if (!token && path !== "/login" && path !== "/signup") {
+      router.replace("/login");
+    } else {
+      setAuthChecked(true);
+    }
+  }, []);
+
+  if (!authChecked && typeof window !== "undefined" && window.location.pathname !== "/login" && window.location.pathname !== "/signup") {
+    return null; // Or a loading spinner
+  }
 
   const renderPage = () => {
     switch (currentPage) {
@@ -26,11 +44,12 @@ export default function App() {
         return <LearningHub />
       case "admin":
         return <AdminPortal />
-      // Add the new case in renderPage function:
       case "categories":
         return <CybercrimeCategories />
       default:
         return <Dashboard />
+      case "reports":
+        return <ReportScamForm />
     }
   }
 

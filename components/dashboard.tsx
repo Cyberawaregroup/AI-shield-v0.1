@@ -63,7 +63,7 @@ export function Dashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Button size="lg" className="h-20 text-xl bg-shield-orange hover:bg-shield-orange/90 text-white">
+        <Button onClick={() => location.href = "/reports"} size="lg" className="h-20 text-xl bg-shield-orange hover:bg-shield-orange/90 text-white">
           <Phone className="h-8 w-8 mr-3" />
           Report Scam Now
         </Button>
