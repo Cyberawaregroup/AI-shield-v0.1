@@ -1,12 +1,21 @@
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, status
+from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from model import User, SessionLocal
+
+from typing import List, Optional
+# import os
+import uuid
+import aiofiles
+from pathlib import Path
+# import magic
+
+from enum import Enum
 
 SECRET_KEY = "your-secret-key"  # Change this in production
 ALGORITHM = "HS256"
@@ -65,17 +74,47 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"} 
 
+class ScamType(str, Enum):
+    PHISHING = "phishing"
+    FAKE_WEBSITE = "fake_website"
+    INVESTMENT = "investment"
+    TECH_SUPPORT = "tech_support"
+    ROMANCE = "romance"
+    JOB = "job"
+    IMPERSONATION = "impersonation"
+    OTHER = "other"
 
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form, status
-from fastapi.security import HTTPBearer
-from sqlalchemy.orm import Session
-from typing import List, Optional
-import os
-import uuid
-import aiofiles
-from pathlib import Path
-# import magic
-from datetime import datetime
+class ScamReportCreate(BaseModel):
+    reporter_name: Optional[str] = None
+    reporter_email: Optional[str] = None
+    reporter_phone: Optional[str] = None
+    incident_date: date
+    incident_time: Optional[str] = None
+    scam_type: ScamType
+    other_scam_type: Optional[str] = None
+    description: str
+    how_scam_began: Optional[str] = None
+    money_lost: bool = False
+    amount_lost: Optional[float] = None
+    scammer_email: Optional[str] = None
+    scammer_phone: Optional[str] = None
+    scammer_website: Optional[str] = None
+    scammer_social_media: Optional[str] = None
+    is_reporter_victim: bool = True
+    victim_relation: Optional[str] = None
+    information_accurate: bool
+    consent_to_contact: bool = False
+
+@router.post("/api/reports")
+def create_scam_report(report: ScamReportCreate, db: Session = Depends(get_db)):
+    # For now, just return success - you can implement database storage later
+    return {"message": "Report submitted successfully", "id": 1}
+
+@router.get("/api/reports")
+def get_scam_reports(db: Session = Depends(get_db)):
+    # Return empty list for now
+    return []
+
 
 from scam_models import ScamReport, ScamEvidence, User
 from scam_schemas import (

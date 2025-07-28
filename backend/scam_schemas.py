@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional, List
 from datetime import datetime, date
@@ -42,31 +41,31 @@ class ScamReportCreate(BaseModel):
     reporter_name: Optional[str] = Field(None, max_length=255)
     reporter_email: Optional[EmailStr] = None
     reporter_phone: Optional[str] = Field(None, max_length=50)
-
+    
     # Scam Details (Required)
     incident_date: date = Field(..., description="Date when the scam occurred")
-    incident_time: Optional[str] = Field(None, regex=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")
+    incident_time: Optional[str] = Field(None, pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")  # FIXED: changed regex= to pattern=
     scam_type: ScamTypeEnum = Field(..., description="Type of scam")
     other_scam_type: Optional[str] = Field(None, max_length=255)
     description: str = Field(..., min_length=10, max_length=1000, description="Brief description of what happened")
     how_scam_began: Optional[str] = Field(None, max_length=500, description="How did the scam begin?")
-
+    
     # Financial Impact
     money_lost: bool = Field(False, description="Was any money lost?")
     amount_lost: Optional[float] = Field(None, ge=0, description="Amount lost if any")
     payment_method: Optional[PaymentMethodEnum] = None
-
+    
     # Scammer Contact Information
     scammer_email: Optional[EmailStr] = None
     scammer_phone: Optional[str] = Field(None, max_length=50)
     scammer_website: Optional[str] = Field(None, max_length=500)
     scammer_social_media: Optional[str] = Field(None, max_length=500)
-
+    
     # Victim Information (Optional)
     is_reporter_victim: bool = Field(True, description="Are you the target/victim?")
     victim_relation: Optional[str] = Field(None, max_length=100)
     victim_age_group: Optional[AgeGroupEnum] = None
-
+    
     # Consent
     information_accurate: bool = Field(..., description="Confirm information is accurate")
     consent_to_contact: bool = Field(False, description="Consent to being contacted for follow-up")

@@ -69,8 +69,12 @@ export const reportSchema = z.object({
     ctx.addIssue({code:"custom", message:"Amount and method are required when money was lost"});
 });
 
+interface ReportProps {
+  onBack: () => void;
+}
+
 // ---- 2.  React component ----
-export default function ReportScamForm() {
+export default function ReportScamForm({ onBack }: ReportProps) {
   const form = useForm<z.infer<typeof reportSchema>>({
     resolver: zodResolver(reportSchema),
     defaultValues: { moneyLost:false, isReporterVictim:true }
@@ -142,47 +146,43 @@ export default function ReportScamForm() {
         </div>
 
         {/* Scam Details */}
-        <FormField
-          control={form.control}
-          name="incidentDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Date of the Incident</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} value={field.value.toISOString().split('T')[0]} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Scam Details</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="incidentDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date of the Incident</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="date" 
+                      onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+                      value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="scamType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type of Scam</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select scam type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="phishing">Phishing email/text</SelectItem>
-                  <SelectItem value="fake_website">Fake website</SelectItem>
-                  <SelectItem value="investment">Investment scam</SelectItem>
-                  <SelectItem value="tech_support">Tech support scam</SelectItem>
-                  <SelectItem value="romance">Romance scam</SelectItem>
-                  <SelectItem value="job">Job scam</SelectItem>
-                  <SelectItem value="impersonation">Impersonation</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="incidentTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Time (Optional)</FormLabel>
+                  <FormControl>
+                    <Input type="time" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
         <FormField
           control={form.control}

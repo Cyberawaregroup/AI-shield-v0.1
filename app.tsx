@@ -35,7 +35,7 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard":
-        return <Dashboard />
+        return <Dashboard onNavigate={setCurrentPage}/>
       case "detection":
         return <EnhancedScamDetection />
       case "profile":
@@ -46,10 +46,10 @@ export default function App() {
         return <AdminPortal />
       case "categories":
         return <CybercrimeCategories />
+      case "report":
+        return <ReportScamForm onBack={() => setCurrentPage("dashboard")} />
       default:
-        return <Dashboard />
-      case "reports":
-        return <ReportScamForm />
+        return <Dashboard onNavigate={setCurrentPage}/>
     }
   }
 
