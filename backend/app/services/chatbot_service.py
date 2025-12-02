@@ -1,7 +1,8 @@
-import uuid
 import logging
-from typing import Dict, Any, Optional, List
-from app.db.chatbot import FraudType, RiskLevel
+from typing import Any, Dict, List, Optional
+import uuid
+
+from app.db.types import FraudType, RiskLevel
 from app.services.huggingface_service import HuggingFaceService
 from app.services.threat_intelligence import ThreatIntelligenceService
 
@@ -38,7 +39,7 @@ class ChatbotService:
         self,
         initial_message: str,
         fraud_type: Optional[FraudType] = None,
-        vulnerability_factors: List[str] = None,
+        vulnerability_factors: List[str] | None = None,
     ) -> Dict[str, Any]:
         """
         Generate the initial AI response for a new chat session
@@ -199,7 +200,7 @@ class ChatbotService:
         self,
         message: str,
         fraud_type: Optional[FraudType] = None,
-        vulnerability_factors: List[str] = None,
+        vulnerability_factors: List[str] | None = None,
     ) -> Dict[str, Any]:
         """
         Analyze a message for fraud type and risk level

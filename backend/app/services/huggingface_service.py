@@ -1,6 +1,8 @@
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from huggingface_hub import InferenceClient
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)

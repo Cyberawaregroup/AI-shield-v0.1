@@ -1,21 +1,20 @@
-import logging
-from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-from app.db.threat_intelligence import (
-    IOC,
-    IOCResponse,
-    IOCCreate,
-    ThreatAlert,
-    ThreatAlertResponse,
-    ThreatAlertCreate,
-    BreachExposure,
-    ThreatFeed,
-)
-from app.services.hibp_service import HIBPService
-from app.services.abuseipdb_service import AbuseIPDBService
-from app.services.phishscan_service import PhishScanService
 from datetime import datetime, timezone
+import logging
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.api.v1.schemas.threat_intelligence import (
+    IOCCreate,
+    IOCResponse,
+    ThreatAlertCreate,
+    ThreatAlertResponse,
+)
+from app.db.threat_intelligence import BreachExposure, IOC, ThreatAlert, ThreatFeed
+from app.services.abuseipdb_service import AbuseIPDBService
+from app.services.hibp_service import HIBPService
+from app.services.phishscan_service import PhishScanService
 
 logger = logging.getLogger(__name__)
 

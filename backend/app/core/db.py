@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 engine = create_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
+    echo=False,
     pool_pre_ping=True,
     pool_recycle=300,
 )
@@ -37,11 +37,9 @@ def get_session(session_type: typing.Optional[typing.Type[Session]] = None, **kw
         yield session
 
 
-######### ASYNC #########
-
 async_engine = create_async_engine(
     settings.ASYNC_DATABASE_URL,
-    echo=settings.DEBUG,
+    echo=False,
     pool_pre_ping=True,
     pool_recycle=300,
 )
@@ -72,12 +70,12 @@ def bind_db_to_model_base(db_engine, model_base: DeclarativeMeta) -> None:
     """
     Bind the database engine to the model base, creating all tables in the database.
     """
-    logger.info("Binding database engine to model base...")
+    logger.debug("Binding database engine to model base...")
     model_base.metadata.create_all(bind=db_engine)
     # Ensures that mappings/relationships between
     # models are properly defined on setup
     configure_mappers()
-    logger.info("Database tables created and model base bound to engine.")
+    logger.debug("Database tables created and model base bound to engine.")
 
 
 Base = declarative_base()

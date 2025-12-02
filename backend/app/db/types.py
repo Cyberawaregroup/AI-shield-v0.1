@@ -37,6 +37,9 @@ class FraudType(str, Enum):
     IDENTITY_THEFT = "identity_theft"
     FINANCIAL_FRAUD = "financial_fraud"
     TECH_SUPPORT_SCAM = "tech_support_scam"
+    ROMANCE_SCAM = "romance_scam"
+    INVESTMENT_SCAM = "investment_scam"
+    BANKING_SCAM = "banking_scam"
     OTHER = "other"
 
     def __str__(self) -> str:

@@ -65,7 +65,7 @@ class HIBPService:
 
         # Add delay for rate limiting
         time.sleep(self.rate_limit_delay)
-        return result
+        return [result]
 
     async def check_domain(self, domain: str) -> List[Dict[str, Any]]:
         """Check if a domain has been involved in data breaches"""
@@ -81,7 +81,7 @@ class HIBPService:
 
         # Add delay for rate limiting
         time.sleep(self.rate_limit_delay)
-        return result
+        return [result]
 
     async def get_breach_details(self, breach_name: str) -> Optional[Dict[str, Any]]:
         """Get detailed information about a specific breach"""
