@@ -1,19 +1,23 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from app.core.database import get_session
-from app.models.users import User, UserCreate, UserUpdate
-from app.core.security import get_password_hash, verify_password
-import logging
+
+from app.api.v1.schemas.users import UserCreate, UserUpdate
+from app.core.db import get_session
+from app.core.security import get_password_hash
+from app.db.threat_intelligence import BreachExposure
+from app.db.users import User
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
 
 @router.get("/")
 async def get_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
 ):
     """Get all users"""
     try:
@@ -30,13 +34,14 @@ async def get_users(
                 "risk_score": user.risk_score,
                 "total_breaches": user.total_breaches,
                 "total_phishing_attempts": user.total_phishing_attempts,
-                "created_at": user.created_at.isoformat()
+                "created_at": user.created_at.isoformat(),
             }
             for user in users
         ]
     except Exception as e:
         logger.error(f"Error fetching users: {e}")
         return []
+
 
 @router.get("/{user_id}")
 async def get_user(user_id: int, db: Session = Depends(get_session)):
@@ -45,7 +50,7 @@ async def get_user(user_id: int, db: Session = Depends(get_session)):
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         return {
             "id": user.id,
             "email": user.email,
@@ -57,13 +62,14 @@ async def get_user(user_id: int, db: Session = Depends(get_session)):
             "risk_score": user.risk_score,
             "total_breaches": user.total_breaches,
             "total_phishing_attempts": user.total_phishing_attempts,
-            "created_at": user.created_at.isoformat()
+            "created_at": user.created_at.isoformat(),
         }
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error fetching user {user_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch user")
+
 
 @router.post("/")
 async def create_user(user: UserCreate, db: Session = Depends(get_session)):
@@ -72,31 +78,30 @@ async def create_user(user: UserCreate, db: Session = Depends(get_session)):
         # Check if user already exists
         existing_user = db.query(User).filter(User.email == user.email).first()
         if existing_user:
-            raise HTTPException(status_code=400, detail="User with this email already exists")
-        
+            raise HTTPException(
+                status_code=400, detail="User with this email already exists"
+            )
+
         # Create new user
         db_user = User(
             email=user.email,
             name=user.name,
             role=user.role,
             age=user.age,
-            vulnerability_factors_list=user.vulnerability_factors or []
+            vulnerability_factors_list=user.vulnerability_factors or [],
         )
-        
-        # Hash password if provided
-        if hasattr(user, 'password') and user.password:
-            db_user.hashed_password = get_password_hash(user.password)
-        
+        db_user.hashed_password = get_password_hash(user.password.get_secret_value())
+
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        
+
         return {
             "id": db_user.id,
             "email": db_user.email,
             "name": db_user.name,
             "role": db_user.role,
-            "message": "User created successfully"
+            "message": "User created successfully",
         }
     except HTTPException:
         raise
@@ -105,18 +110,17 @@ async def create_user(user: UserCreate, db: Session = Depends(get_session)):
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to create user")
 
+
 @router.put("/{user_id}")
 async def update_user(
-    user_id: int,
-    user_update: UserUpdate,
-    db: Session = Depends(get_session)
+    user_id: int, user_update: UserUpdate, db: Session = Depends(get_session)
 ):
     """Update a user"""
     try:
         db_user = db.query(User).filter(User.id == user_id).first()
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Update fields if provided
         if user_update.name is not None:
             db_user.name = user_update.name
@@ -132,16 +136,16 @@ async def update_user(
             db_user.total_breaches = user_update.total_breaches
         if user_update.total_phishing_attempts is not None:
             db_user.total_phishing_attempts = user_update.total_phishing_attempts
-        
+
         db.commit()
         db.refresh(db_user)
-        
+
         return {
             "id": db_user.id,
             "email": db_user.email,
             "name": db_user.name,
             "role": db_user.role,
-            "message": "User updated successfully"
+            "message": "User updated successfully",
         }
     except HTTPException:
         raise
@@ -150,6 +154,7 @@ async def update_user(
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to update user")
 
+
 @router.delete("/{user_id}")
 async def delete_user(user_id: int, db: Session = Depends(get_session)):
     """Delete a user"""
@@ -157,10 +162,10 @@ async def delete_user(user_id: int, db: Session = Depends(get_session)):
         db_user = db.query(User).filter(User.id == user_id).first()
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         db.delete(db_user)
         db.commit()
-        
+
         return {"message": "User deleted successfully"}
     except HTTPException:
         raise
@@ -169,13 +174,15 @@ async def delete_user(user_id: int, db: Session = Depends(get_session)):
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to delete user")
 
+
 @router.get("/{user_id}/breaches")
 async def get_user_breaches(user_id: int, db: Session = Depends(get_session)):
     """Get breach exposures for a specific user"""
     try:
-        from app.models.threat_intelligence import BreachExposure
-        
-        breaches = db.query(BreachExposure).filter(BreachExposure.user_id == user_id).all()
+
+        breaches = (
+            db.query(BreachExposure).filter(BreachExposure.user_id == user_id).all()
+        )
         return [
             {
                 "id": breach.id,
@@ -185,7 +192,7 @@ async def get_user_breaches(user_id: int, db: Session = Depends(get_session)):
                 "data_classes": breach.data_classes_list,
                 "severity": breach.severity,
                 "source": breach.source,
-                "created_at": breach.created_at.isoformat()
+                "created_at": breach.created_at.isoformat(),
             }
             for breach in breaches
         ]

@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import orjson as json
-from pydantic import BaseModel
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -17,7 +16,7 @@ from sqlalchemy import (
 from sqlalchemy import orm
 
 from app.core import utils
-from app.core.database import Base
+from app.core.db import Base
 
 
 class ChatSession(Base):
@@ -336,5 +335,3 @@ class SecurityAdvisor(Base):
     def available_hours_dict(self, value: Dict[str, List[str]]):
         """Set available hours from a dictionary"""
         self.available_hours = json.dumps(value).decode()
-
-

@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 import orjson as json
-from pydantic import BaseModel
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -17,7 +16,7 @@ from sqlalchemy import (
 from sqlalchemy import orm
 
 from app.core import utils
-from app.core.database import Base
+from app.core.db import Base
 
 
 class BreachExposure(Base):

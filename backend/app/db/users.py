@@ -1,8 +1,7 @@
 import datetime
-from typing import List, Optional
+from typing import List
 
 import orjson as json
-from pydantic import BaseModel, EmailStr
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -16,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy import orm
 
 from app.core import utils
-from app.core.database import Base
+from app.core.db import Base
 
 
 class User(Base):
@@ -52,9 +51,7 @@ class User(Base):
     role: orm.Mapped[str] = orm.mapped_column(
         String(50), default="user", nullable=False
     )
-    hashed_password: orm.Mapped[str | None] = orm.mapped_column(
-        String(255), nullable=True
-    )
+    hashed_password: orm.Mapped[str] = orm.mapped_column(String(255), nullable=False)
     is_active: orm.Mapped[bool] = orm.mapped_column(
         Boolean, default=True, nullable=False
     )
@@ -100,5 +97,3 @@ class User(Base):
     def vulnerability_factors_list(self, value: List[str]):
         """Set vulnerability factors from a list"""
         self.vulnerability_factors = json.dumps(value).decode()
-
-

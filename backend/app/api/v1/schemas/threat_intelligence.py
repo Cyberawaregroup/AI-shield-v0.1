@@ -59,3 +59,7 @@ class ThreatAlertResponse(BaseModel):
     is_acknowledged: bool
     resolution_status: str
     created_at: datetime
+
+
+class PhishingCheckRequest(BaseModel):
+    url: str

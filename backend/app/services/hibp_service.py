@@ -6,32 +6,32 @@ import time
 
 logger = logging.getLogger(__name__)
 
+
 class HIBPService:
     def __init__(self):
         self.api_key = settings.HIBP_API_KEY
         self.base_url = "https://haveibeenpwned.com/api/v3"
         self.rate_limit_delay = 1.6  # HIBP requires 1.6 seconds between requests
-        
-    async def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+
+    async def _make_request(
+        self, endpoint: str, params: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
         """Make a request to HIBP API with proper headers and rate limiting"""
         if not self.api_key:
             logger.warning("HIBP API key not configured. Using mock data.")
             return None
-            
-        headers = {
-            "hibp-api-key": self.api_key,
-            "user-agent": "AI-Shield-Sentinel/1.0"
-        }
-        
+
+        headers = {"hibp-api-key": self.api_key, "user-agent": "AI-Shield-Sentinel/1.0"}
+
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     f"{self.base_url}{endpoint}",
                     headers=headers,
                     params=params,
-                    timeout=30.0
+                    timeout=30.0,
                 )
-                
+
                 if response.status_code == 200:
                     return response.json()
                 elif response.status_code == 404:
@@ -42,9 +42,11 @@ class HIBPService:
                     time.sleep(self.rate_limit_delay)
                     return None
                 else:
-                    logger.error(f"HIBP API error: {response.status_code} - {response.text}")
+                    logger.error(
+                        f"HIBP API error: {response.status_code} - {response.text}"
+                    )
                     return None
-                    
+
         except Exception as e:
             logger.error(f"Error making HIBP request: {e}")
             return None
@@ -54,13 +56,13 @@ class HIBPService:
         if not self.api_key:
             # Return mock data for testing
             return self._get_mock_breaches(email)
-            
+
         endpoint = f"/breachedaccount/{email}"
         result = await self._make_request(endpoint)
-        
+
         if result is None:
             return []
-            
+
         # Add delay for rate limiting
         time.sleep(self.rate_limit_delay)
         return result
@@ -70,13 +72,13 @@ class HIBPService:
         if not self.api_key:
             # Return mock data for testing
             return self._get_mock_domain_breaches(domain)
-            
+
         endpoint = f"/breaches?domain={domain}"
         result = await self._make_request(endpoint)
-        
+
         if result is None:
             return []
-            
+
         # Add delay for rate limiting
         time.sleep(self.rate_limit_delay)
         return result
@@ -86,13 +88,13 @@ class HIBPService:
         if not self.api_key:
             # Return mock data for testing
             return self._get_mock_breach_details(breach_name)
-            
+
         endpoint = f"/breach/{breach_name}"
         result = await self._make_request(endpoint)
-        
+
         if result is None:
             return None
-            
+
         # Add delay for rate limiting
         time.sleep(self.rate_limit_delay)
         return result
@@ -102,25 +104,26 @@ class HIBPService:
         if not self.api_key:
             # Return mock data for testing
             return self._get_mock_password_check(password)
-            
+
         import hashlib
-        password_hash = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+
+        password_hash = hashlib.sha1(password.encode("utf-8")).hexdigest().upper()
         prefix = password_hash[:5]
         suffix = password_hash[5:]
-        
+
         endpoint = f"/range/{prefix}"
         result = await self._make_request(endpoint)
-        
+
         if result is None:
             return False
-            
+
         # Check if the suffix exists in the response
-        lines = result.split('\n')
+        lines = result.split("\n")
         for line in lines:
             if line.startswith(suffix):
-                count = int(line.split(':')[1])
+                count = int(line.split(":")[1])
                 return count > 0
-                
+
         # Add delay for rate limiting
         time.sleep(self.rate_limit_delay)
         return False
@@ -137,13 +140,18 @@ class HIBPService:
                 "ModifiedDate": "2013-12-04T00:00:00Z",
                 "PwnCount": 152445165,
                 "Description": "In October 2013, 153 million Adobe accounts were breached with each containing an internal ID, username, email, encrypted password and a password hint in plain text.",
-                "DataClasses": ["Email addresses", "Password hints", "Passwords", "Usernames"],
+                "DataClasses": [
+                    "Email addresses",
+                    "Password hints",
+                    "Passwords",
+                    "Usernames",
+                ],
                 "IsVerified": True,
                 "IsFabricated": False,
                 "IsSensitive": False,
                 "IsRetired": False,
                 "IsSpamList": False,
-                "LogoPath": "https://haveibeenpwned.com/Content/Images/PwnedLogos/Adobe.png"
+                "LogoPath": "https://haveibeenpwned.com/Content/Images/PwnedLogos/Adobe.png",
             },
             {
                 "Name": "LinkedIn Data Breach 2012",
@@ -160,8 +168,8 @@ class HIBPService:
                 "IsSensitive": False,
                 "IsRetired": False,
                 "IsSpamList": False,
-                "LogoPath": "https://haveibeenpwned.com/Content/Images/PwnedLogos/LinkedIn.png"
-            }
+                "LogoPath": "https://haveibeenpwned.com/Content/Images/PwnedLogos/LinkedIn.png",
+            },
         ]
 
     def _get_mock_domain_breaches(self, domain: str) -> List[Dict[str, Any]]:
@@ -174,7 +182,7 @@ class HIBPService:
                 "BreachDate": "2023-01-01",
                 "PwnCount": 1000,
                 "Description": f"Mock data breach for {domain}",
-                "DataClasses": ["Email addresses", "Passwords"]
+                "DataClasses": ["Email addresses", "Passwords"],
             }
         ]
 
@@ -187,10 +195,10 @@ class HIBPService:
             "BreachDate": "2023-01-01",
             "PwnCount": 1000,
             "Description": f"Mock breach details for {breach_name}",
-            "DataClasses": ["Email addresses", "Passwords"]
+            "DataClasses": ["Email addresses", "Passwords"],
         }
 
     def _get_mock_password_check(self, password: str) -> bool:
         """Return mock password check result for testing"""
         # Mock: consider passwords with 'password' or '123' as compromised
-        return 'password' in password.lower() or '123' in password
+        return "password" in password.lower() or "123" in password

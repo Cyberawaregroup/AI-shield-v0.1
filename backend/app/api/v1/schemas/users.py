@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, SecretStr
 
 
 # Pydantic models for API requests/responses
@@ -11,6 +11,7 @@ class UserCreate(BaseModel):
     role: str = "user"
     age: Optional[int] = None
     vulnerability_factors: Optional[List[str]] = []
+    password: SecretStr
 
 
 class UserUpdate(BaseModel):

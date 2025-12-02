@@ -8,7 +8,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from app.api.v1.api import api_router
+from app.api.v1.routers import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.core.database import bind_db_to_model_base, engine, Base
+    from app.core.db import bind_db_to_model_base, engine, Base
 
     logger.info("Starting Threat Intelligence Platform...")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
