@@ -1,39 +1,21 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Text, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
 import json
+from typing import Any, Dict, List, Optional
 
-Base = declarative_base()
+from pydantic import BaseModel
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
+from app.core.database import Base
 
-class ChatSessionStatus(str, Enum):
-    ACTIVE = "active"
-    ESCALATED = "escalated"
-    CLOSED = "closed"
-    ARCHIVED = "archived"
-
-class MessageType(str, Enum):
-    USER = "user"
-    BOT = "bot"
-    ADVISOR = "advisor"
-    SYSTEM = "system"
-
-class RiskLevel(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-
-class FraudType(str, Enum):
-    PHISHING = "phishing"
-    SOCIAL_ENGINEERING = "social_engineering"
-    IDENTITY_THEFT = "identity_theft"
-    FINANCIAL_FRAUD = "financial_fraud"
-    TECH_SUPPORT_SCAM = "tech_support_scam"
-    OTHER = "other"
 
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
@@ -63,6 +45,7 @@ class ChatSession(Base):
         """Set vulnerability factors from a list"""
         self.vulnerability_factors = json.dumps(value)
 
+
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
@@ -70,7 +53,9 @@ class ChatMessage(Base):
     session_id = Column(Integer, ForeignKey("chat_sessions.id"), index=True)
     message_type = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    message_metadata = Column(Text, default="{}")  # JSON string instead of Dict[str, Any]
+    message_metadata = Column(
+        Text, default="{}"
+    )  # JSON string instead of Dict[str, Any]
 
     # AI-specific fields
     ai_model = Column(String, nullable=True)
@@ -97,12 +82,15 @@ class ChatMessage(Base):
         """Set metadata from a dictionary"""
         self.message_metadata = json.dumps(value)
 
+
 class FraudReport(Base):
     __tablename__ = "fraud_reports"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=True, index=True)
+    session_id = Column(
+        Integer, ForeignKey("chat_sessions.id"), nullable=True, index=True
+    )
     fraud_type = Column(String, nullable=False)
     description = Column(Text, nullable=False)
     risk_level = Column(String, default="medium")
@@ -140,6 +128,7 @@ class FraudReport(Base):
     def evidence_links_list(self, value: List[str]):
         """Set evidence links from a list"""
         self.evidence_links = json.dumps(value)
+
 
 class SecurityAdvisor(Base):
     __tablename__ = "security_advisors"
@@ -197,11 +186,13 @@ class SecurityAdvisor(Base):
         """Set available hours from a dictionary"""
         self.available_hours = json.dumps(value)
 
+
 # Pydantic models for API requests/responses
 class ChatMessageCreate(BaseModel):
     content: str
     message_type: str = "user"
     message_metadata: Optional[Dict[str, Any]] = {}
+
 
 class ChatMessageResponse(BaseModel):
     id: int
@@ -213,9 +204,11 @@ class ChatMessageResponse(BaseModel):
     ai_reasoning: Optional[str] = None
     created_at: datetime
 
+
 class ChatSessionCreate(BaseModel):
     user_id: Optional[int] = None
     vulnerability_factors: Optional[List[str]] = []
+
 
 class ChatSessionResponse(BaseModel):
     id: int
@@ -225,6 +218,7 @@ class ChatSessionResponse(BaseModel):
     vulnerability_factors: List[str]
     created_at: datetime
 
+
 class FraudReportCreate(BaseModel):
     fraud_type: str
     description: str
@@ -232,6 +226,7 @@ class FraudReportCreate(BaseModel):
     evidence_files: Optional[List[str]] = []
     evidence_links: Optional[List[str]] = []
     financial_loss: Optional[float] = None
+
 
 class FraudReportResponse(BaseModel):
     id: int

@@ -1,36 +1,22 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Text, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    Float,
+    DateTime,
+    Text,
+    ForeignKey,
+)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 import json
 
 Base = declarative_base()
 
-class ThreatSeverity(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-
-class IOCType(str, Enum):
-    IP_ADDRESS = "ip_address"
-    DOMAIN = "domain"
-    URL = "url"
-    EMAIL = "email"
-    HASH = "hash"
-    FILENAME = "filename"
-
-class ThreatSource(str, Enum):
-    HIBP = "hibp"
-    ABUSEIPDB = "abuseipdb"
-    PHISHSCAN = "phishscan"
-    SOCRADAR = "socradar"
-    NETCRAFT = "netcraft"
-    CLOUDFLARE = "cloudflare"
-    MANUAL = "manual"
 
 class BreachExposure(Base):
     __tablename__ = "breach_exposures"
@@ -58,6 +44,7 @@ class BreachExposure(Base):
     def data_classes_list(self, value: List[str]):
         """Set data classes from a list"""
         self.data_classes = json.dumps(value)
+
 
 class IOC(Base):
     __tablename__ = "indicators_of_compromise"
@@ -105,6 +92,7 @@ class IOC(Base):
         """Set threat categories from a list"""
         self.threat_categories = json.dumps(value)
 
+
 class ThreatFeed(Base):
     __tablename__ = "threat_feeds"
 
@@ -116,6 +104,7 @@ class ThreatFeed(Base):
     is_active = Column(Boolean, default=True)
     last_updated = Column(DateTime, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class ThreatAlert(Base):
     __tablename__ = "threat_alerts"
@@ -179,6 +168,7 @@ class ThreatAlert(Base):
         """Set affected domains from a list"""
         self.affected_domains = json.dumps(value)
 
+
 # Pydantic models for API requests/responses
 class IOCCreate(BaseModel):
     value: str
@@ -190,6 +180,7 @@ class IOCCreate(BaseModel):
     tags: Optional[List[str]] = []
     threat_categories: Optional[List[str]] = []
     source: str = "manual"
+
 
 class IOCResponse(BaseModel):
     id: int
@@ -207,6 +198,7 @@ class IOCResponse(BaseModel):
     sighting_count: int
     created_at: datetime
 
+
 class ThreatAlertCreate(BaseModel):
     title: str
     description: Optional[str] = None
@@ -216,6 +208,7 @@ class ThreatAlertCreate(BaseModel):
     affected_users: Optional[List[int]] = []
     affected_ips: Optional[List[str]] = []
     affected_domains: Optional[List[str]] = []
+
 
 class ThreatAlertResponse(BaseModel):
     id: int
