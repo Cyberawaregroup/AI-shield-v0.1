@@ -19,13 +19,13 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.core.database import bind_db_to_model_base, engine
+    from app.core.database import bind_db_to_model_base, engine, Base
 
     logger.info("Starting Threat Intelligence Platform...")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
 
-    bind_db_to_model_base(db_engine=engine, model_base=None)
+    bind_db_to_model_base(db_engine=engine, model_base=Base)
     yield
     logger.info("Shutting down Threat Intelligence Platform...")
 
@@ -39,7 +39,7 @@ app = FastAPI(
 
 # Add CORS middleware
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # type: ignore
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
@@ -47,7 +47,7 @@ app.add_middleware(
 )
 
 # Add TrustedHost middleware
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)  # type: ignore
 
 
 # Request timing middleware

@@ -3,6 +3,7 @@ import logging
 import typing
 
 from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import configure_mappers
@@ -77,3 +78,6 @@ def bind_db_to_model_base(db_engine, model_base: DeclarativeMeta) -> None:
     # models are properly defined on setup
     configure_mappers()
     logger.info("Database tables created and model base bound to engine.")
+
+
+Base = declarative_base()
