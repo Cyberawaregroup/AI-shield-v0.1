@@ -12,7 +12,7 @@ from app.api.v1.schemas.chatbot import (
 )
 from app.services.chatbot_service import ChatbotService
 from app.services.huggingface_service import HuggingFaceService
-from app.core.security import get_current_user
+from app.core.security import get_user
 import logging
 import json
 from datetime import datetime, timezone
@@ -90,7 +90,7 @@ async def create_chat_session(
 
 @router.get("/sessions", response_model=List[ChatSessionResponse])
 async def get_user_sessions(
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_user),
     db_session: Session = Depends(get_session),
     skip: int = 0,
     limit: int = 100,
@@ -120,7 +120,7 @@ async def get_user_sessions(
 @router.get("/sessions/{session_id}", response_model=ChatSessionResponse)
 async def get_chat_session(
     session_id: str,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_user),
     db_session: Session = Depends(get_session),
 ):
     """
@@ -133,7 +133,7 @@ async def get_chat_session(
             .where(ChatSession.user_id == current_user.id)
         ).scalar_one_or_none()
 
-        if not session:
+        if session is None:
             raise HTTPException(status_code=404, detail="Chat session not found")
 
         return ChatSessionResponse.from_orm(session)
@@ -145,7 +145,7 @@ async def get_chat_session(
 @router.get("/sessions/{session_id}/messages", response_model=List[ChatMessageResponse])
 async def get_chat_messages(
     session_id: str,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_user),
     db_session: Session = Depends(get_session),
     skip: int = 0,
     limit: int = 100,
@@ -161,7 +161,7 @@ async def get_chat_messages(
             .where(ChatSession.user_id == current_user.id)
         ).scalar_one_or_none()
 
-        if not session:
+        if session is None:
             raise HTTPException(status_code=404, detail="Chat session not found")
 
         messages = (
@@ -186,7 +186,7 @@ async def get_chat_messages(
 async def send_message(
     session_id: str,
     message: ChatMessageCreate,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_user),
     db_session: Session = Depends(get_session),
     chatbot_service: ChatbotService = Depends(get_chatbot_service),
     huggingface_service: HuggingFaceService = Depends(get_huggingface_service),
@@ -202,7 +202,7 @@ async def send_message(
             .where(ChatSession.user_id == current_user.id)
         ).scalar_one_or_none()
 
-        if not session:
+        if session is None:
             raise HTTPException(status_code=404, detail="Chat session not found")
 
         if session.status == "closed":
@@ -252,7 +252,7 @@ async def send_message(
 @router.post("/sessions/{session_id}/escalate")
 async def escalate_chat_session(
     session_id: str,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_user),
     db_session: Session = Depends(get_session),
     chatbot_service: ChatbotService = Depends(get_chatbot_service),
 ):
@@ -266,7 +266,7 @@ async def escalate_chat_session(
             .where(ChatSession.user_id == current_user.id)
         ).scalar_one_or_none()
 
-        if not session:
+        if session is None:
             raise HTTPException(status_code=404, detail="Chat session not found")
 
         if session.is_escalated:
@@ -294,7 +294,7 @@ async def escalate_chat_session(
 @router.post("/sessions/{session_id}/close")
 async def close_chat_session(
     session_id: str,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_user),
     db_session: Session = Depends(get_session),
 ):
     """
@@ -307,7 +307,7 @@ async def close_chat_session(
             .where(ChatSession.user_id == current_user.id)
         ).scalar_one_or_none()
 
-        if not session:
+        if session is None:
             raise HTTPException(status_code=404, detail="Chat session not found")
 
         session.status = "closed"
@@ -327,7 +327,7 @@ async def provide_message_feedback(
     message_id: int,
     feedback: str,
     is_helpful: bool,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_user),
     db_session: Session = Depends(get_session),
 ):
     """
@@ -341,12 +341,12 @@ async def provide_message_feedback(
             .where(ChatSession.user_id == current_user.id)
         ).scalar_one_or_none()
 
-        if not session:
+        if session is None:
             raise HTTPException(status_code=404, detail="Chat session not found")
 
         # Update message with feedback
         message = db_session.get(ChatMessage, message_id)
-        if not message or message.session_id != session.id:
+        if message is None or message.session_id != session.id:
             raise HTTPException(status_code=404, detail="Message not found")
 
         message.user_feedback = feedback
@@ -376,7 +376,7 @@ async def websocket_endpoint(
             select(ChatSession).where(ChatSession.session_id == session_id)
         ).scalar_one_or_none()
 
-        if not session:
+        if session is None:
             await websocket.close(code=4004, reason="Session not found")
             return
 

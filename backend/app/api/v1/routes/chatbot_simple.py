@@ -141,7 +141,7 @@ async def get_chat_messages(
             select(ChatSession).where(ChatSession.session_id == session_id)
         ).scalar_one_or_none()
 
-        if not session:
+        if session is None:
             raise HTTPException(status_code=404, detail="Chat session not found")
 
         messages = (
@@ -194,7 +194,7 @@ async def send_message(
             select(ChatSession).where(ChatSession.session_id == session_id)
         ).scalar_one_or_none()
 
-        if not session:
+        if session is None:
             raise HTTPException(status_code=404, detail="Chat session not found")
 
         if session.status == "closed":

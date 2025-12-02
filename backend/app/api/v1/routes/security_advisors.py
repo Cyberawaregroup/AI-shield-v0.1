@@ -48,7 +48,7 @@ async def get_security_advisor(advisor_id: int, db: Session = Depends(get_sessio
         advisor = (
             db.query(SecurityAdvisor).filter(SecurityAdvisor.id == advisor_id).first()
         )
-        if not advisor:
+        if advisor is None:
             raise HTTPException(status_code=404, detail="Security advisor not found")
 
         return {

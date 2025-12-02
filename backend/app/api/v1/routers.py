@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import (
+from app.api.v1.routes import (
     users,
     threat_intelligence,
     fraud_reports,

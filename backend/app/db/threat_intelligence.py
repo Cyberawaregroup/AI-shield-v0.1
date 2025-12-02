@@ -19,12 +19,16 @@ from app.core import utils
 from app.core.db import Base
 
 
+__all__ = ["BreachExposure", "IOC", "ThreatFeed", "ThreatAlert"]
+
+
 class BreachExposure(Base):
     __tablename__ = "breach_exposures"
     __table_args__ = (
         Index("ix_breach_exposures_user_id_severity", "user_id", "severity"),
         Index("ix_breach_exposures_breach_date_severity", "breach_date", "severity"),
         Index("ix_breach_exposures_source_source_id", "source", "source_id"),
+        Index("ix_breach_exposures_is_deleted", "is_deleted"),
         CheckConstraint(
             "severity IN ('low', 'medium', 'high', 'critical')",
             name="ck_breach_exposures_severity_valid",
@@ -54,6 +58,9 @@ class BreachExposure(Base):
     user_id: orm.Mapped[int | None] = orm.mapped_column(
         Integer, ForeignKey("users.id"), nullable=True, index=True
     )
+    is_deleted: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False, index=True
+    )
     created_at: orm.Mapped[datetime] = orm.mapped_column(
         DateTime(timezone=True), default=utils.now, nullable=False
     )
@@ -79,6 +86,7 @@ class IOC(Base):
         Index("ix_ioc_type_severity", "type", "severity"),
         Index("ix_ioc_source_source_id", "source", "source_id"),
         Index("ix_ioc_last_seen_severity", "last_seen", "severity"),
+        Index("ix_ioc_is_deleted", "is_deleted"),
         CheckConstraint(
             "severity IN ('low', 'medium', 'high', 'critical')",
             name="ck_ioc_severity_valid",
@@ -131,6 +139,9 @@ class IOC(Base):
     sighting_count: orm.Mapped[int] = orm.mapped_column(
         Integer, default=1, nullable=False
     )
+    is_deleted: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False, index=True
+    )
     created_at: orm.Mapped[datetime] = orm.mapped_column(
         DateTime(timezone=True), default=utils.now, nullable=False
     )
@@ -170,6 +181,7 @@ class ThreatFeed(Base):
     __table_args__ = (
         Index("ix_threat_feeds_is_active_feed_type", "is_active", "feed_type"),
         Index("ix_threat_feeds_last_updated", "last_updated"),
+        Index("ix_threat_feeds_is_deleted", "is_deleted"),
         CheckConstraint(
             "length(name) > 0",
             name="ck_threat_feeds_name_not_empty",
@@ -187,6 +199,9 @@ class ThreatFeed(Base):
     feed_type: orm.Mapped[str] = orm.mapped_column(String(100), nullable=False)
     is_active: orm.Mapped[bool] = orm.mapped_column(
         Boolean, default=True, nullable=False
+    )
+    is_deleted: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False, index=True
     )
     last_updated: orm.Mapped[datetime] = orm.mapped_column(
         DateTime(timezone=True), default=utils.now, nullable=False
@@ -210,6 +225,7 @@ class ThreatAlert(Base):
             "ix_threat_alerts_is_acknowledged_is_active", "is_acknowledged", "is_active"
         ),
         Index("ix_threat_alerts_created_at_severity", "created_at", "severity"),
+        Index("ix_threat_alerts_is_deleted", "is_deleted"),
         CheckConstraint(
             "severity IN ('low', 'medium', 'high', 'critical')",
             name="ck_threat_alerts_severity_valid",
@@ -267,6 +283,9 @@ class ThreatAlert(Base):
     resolved_at: orm.Mapped[datetime | None] = orm.mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    is_deleted: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False, index=True
+    )
     created_at: orm.Mapped[datetime] = orm.mapped_column(
         DateTime(timezone=True), default=utils.now, nullable=False
     )
@@ -312,4 +331,3 @@ class ThreatAlert(Base):
     def affected_domains_list(self, value: List[str]):
         """Set affected domains from a list"""
         self.affected_domains = json.dumps(value).decode()
-

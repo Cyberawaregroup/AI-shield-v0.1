@@ -1,5 +1,5 @@
 import datetime
-from typing import List
+from typing import List, Literal
 
 import orjson as json
 from sqlalchemy import (
@@ -18,12 +18,17 @@ from app.core import utils
 from app.core.db import Base
 
 
+__all__ = ["User"]
+
+
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         Index("ix_users_email_is_active", "email", "is_active"),
         Index("ix_users_role_is_active", "role", "is_active"),
         Index("ix_users_is_vulnerable_risk_score", "is_vulnerable", "risk_score"),
+        Index("ix_users_is_deleted", "is_deleted"),
+        Index("ix_users_is_active_is_deleted", "is_active", "is_deleted"),
         CheckConstraint("age IS NULL OR age > 0", name="ck_users_age_positive"),
         CheckConstraint(
             "vulnerability_score >= 0.0 AND vulnerability_score <= 100.0",
@@ -48,12 +53,15 @@ class User(Base):
     )
     phone: orm.Mapped[str | None] = orm.mapped_column(String(20), nullable=True)
     name: orm.Mapped[str] = orm.mapped_column(String(255), nullable=False)
-    role: orm.Mapped[str] = orm.mapped_column(
+    role: orm.Mapped[Literal["user", "admin", "it_director"]] = orm.mapped_column(
         String(50), default="user", nullable=False
     )
     hashed_password: orm.Mapped[str] = orm.mapped_column(String(255), nullable=False)
     is_active: orm.Mapped[bool] = orm.mapped_column(
         Boolean, default=True, nullable=False
+    )
+    is_deleted: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False, index=True
     )
 
     # Vulnerability assessment

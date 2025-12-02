@@ -79,7 +79,7 @@ async def get_fraud_report(report_id: int, db: Session = Depends(get_session)):
     try:
         report = db.query(FraudReport).filter(FraudReport.id == report_id).first()
 
-        if not report:
+        if report is None:
             raise HTTPException(status_code=404, detail="Fraud report not found")
 
         return {
@@ -109,7 +109,7 @@ async def update_fraud_report(
     try:
         report = db.query(FraudReport).filter(FraudReport.id == report_id).first()
 
-        if not report:
+        if report is None:
             raise HTTPException(status_code=404, detail="Fraud report not found")
 
         # Update fields if provided

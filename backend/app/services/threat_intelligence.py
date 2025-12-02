@@ -272,7 +272,7 @@ class ThreatIntelligenceService:
             statement = select(ThreatFeed).where(ThreatFeed.id == feed_id)
             feed = db_session.execute(statement).scalar_one_or_none()
 
-            if not feed:
+            if feed is None:
                 return False
 
             # Update feed status

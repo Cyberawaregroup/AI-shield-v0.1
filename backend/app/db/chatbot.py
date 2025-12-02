@@ -19,12 +19,16 @@ from app.core import utils
 from app.core.db import Base
 
 
+__all__ = ["ChatSession", "ChatMessage", "FraudReport", "SecurityAdvisor"]
+
+
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
     __table_args__ = (
         Index("ix_chat_sessions_user_id_status", "user_id", "status"),
         Index("ix_chat_sessions_status_risk_level", "status", "risk_level"),
         Index("ix_chat_sessions_created_at_status", "created_at", "status"),
+        Index("ix_chat_sessions_is_deleted", "is_deleted"),
         CheckConstraint(
             "status IN ('active', 'closed', 'escalated', 'archived')",
             name="ck_chat_sessions_status_valid",
@@ -60,6 +64,9 @@ class ChatSession(Base):
     escalated_at: orm.Mapped[datetime | None] = orm.mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    is_deleted: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False, index=True
+    )
     created_at: orm.Mapped[datetime] = orm.mapped_column(
         DateTime(timezone=True), default=utils.now, nullable=False
     )
@@ -87,6 +94,7 @@ class ChatMessage(Base):
         Index("ix_chat_messages_session_id_message_type", "session_id", "message_type"),
         Index("ix_chat_messages_created_at_message_type", "created_at", "message_type"),
         Index("ix_chat_messages_ai_model_ai_confidence", "ai_model", "ai_confidence"),
+        Index("ix_chat_messages_is_deleted", "is_deleted"),
         CheckConstraint(
             "message_type IN ('user', 'assistant', 'system', 'error')",
             name="ck_chat_messages_message_type_valid",
@@ -120,11 +128,12 @@ class ChatMessage(Base):
     ai_confidence: orm.Mapped[float | None] = orm.mapped_column(Float, nullable=True)
     ai_reasoning: orm.Mapped[str | None] = orm.mapped_column(Text, nullable=True)
 
-    # User interaction
     user_feedback: orm.Mapped[str | None] = orm.mapped_column(String(50), nullable=True)
     is_helpful: orm.Mapped[bool | None] = orm.mapped_column(Boolean, nullable=True)
 
-    # Timestamps
+    is_deleted: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False, index=True
+    )
     created_at: orm.Mapped[datetime] = orm.mapped_column(
         DateTime(timezone=True), default=utils.now, nullable=False
     )
@@ -146,6 +155,7 @@ class ChatMessage(Base):
 class FraudReport(Base):
     __tablename__ = "fraud_reports"
     __table_args__ = (
+        Index("ix_fraud_reports_is_deleted", "is_deleted"),
         Index("ix_fraud_reports_user_id_status", "user_id", "status"),
         Index("ix_fraud_reports_fraud_type_risk_level", "fraud_type", "risk_level"),
         Index("ix_fraud_reports_reported_at_status", "reported_at", "status"),
@@ -203,6 +213,10 @@ class FraudReport(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    is_deleted: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False, index=True
+    )
+
     @property
     def evidence_files_list(self) -> List[str]:
         """Get evidence files as a list"""
@@ -233,6 +247,7 @@ class FraudReport(Base):
 class SecurityAdvisor(Base):
     __tablename__ = "security_advisors"
     __table_args__ = (
+        Index("ix_security_advisors_is_deleted", "is_deleted"),
         Index(
             "ix_security_advisors_is_available_current_load",
             "is_available",
@@ -290,6 +305,10 @@ class SecurityAdvisor(Base):
     available_hours: orm.Mapped[str] = orm.mapped_column(
         Text, default="{}", nullable=False
     )  # JSON string
+
+    is_deleted: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False, index=True
+    )
     created_at: orm.Mapped[datetime] = orm.mapped_column(
         DateTime(timezone=True), default=utils.now, nullable=False
     )
