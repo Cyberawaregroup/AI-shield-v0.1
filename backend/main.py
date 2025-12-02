@@ -1,45 +1,40 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, HTTPException
+import logging
+import time
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-import time
-import logging
+import uvicorn
+
+from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.core.database import init_db
-from app.api.v1.api import api_router
 
-# Setup logging
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    from app.core.database import bind_db_to_model_base, engine
+
     logger.info("Starting Threat Intelligence Platform...")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
-    
-    try:
-        # Initialize database
-        init_db()
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        raise
-    
+
+    bind_db_to_model_base(db_engine=engine, model_base=None)
     yield
-    
-    # Shutdown
     logger.info("Shutting down Threat Intelligence Platform...")
 
-# Create FastAPI app
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="AI Shield Sentinel - Threat Intelligence Platform for Cyber Aware Group",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -52,10 +47,8 @@ app.add_middleware(
 )
 
 # Add TrustedHost middleware
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=settings.ALLOWED_HOSTS
-)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
+
 
 # Request timing middleware
 @app.middleware("http")
@@ -66,33 +59,35 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Global exception: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
-    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
 
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
+
 
 # Health check endpoints
 @app.get("/healthz")
 async def health_check():
     return {"status": "healthy", "service": "threat-intelligence-platform"}
 
+
 @app.get("/readyz")
 async def readiness_check():
     return {"status": "ready", "service": "threat-intelligence-platform"}
 
+
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(
         "main:app",
         host="localhost",
         port=8000,
         reload=True,
-        log_level="info"
+        log_level="info",
+        workers=1,
     )
