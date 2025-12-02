@@ -1,13 +1,13 @@
 from .users import User, UserCreate, UserUpdate
 from .threat_intelligence import (
-    BreachExposure, 
-    IOC, 
-    ThreatFeed, 
+    BreachExposure,
+    IOC,
+    ThreatFeed,
     ThreatAlert,
     IOCCreate,
     IOCResponse,
     ThreatAlertCreate,
-    ThreatAlertResponse
+    ThreatAlertResponse,
 )
 from .chatbot import (
     ChatSession,
@@ -19,14 +19,29 @@ from .chatbot import (
     ChatSessionCreate,
     ChatSessionResponse,
     FraudReportCreate,
-    FraudReportResponse
+    FraudReportResponse,
 )
 
 __all__ = [
-    "User", "UserCreate", "UserUpdate",
-    "BreachExposure", "IOC", "ThreatFeed", "ThreatAlert",
-    "IOCCreate", "IOCResponse", "ThreatAlertCreate", "ThreatAlertResponse",
-    "ChatSession", "ChatMessage", "FraudReport", "SecurityAdvisor",
-    "ChatMessageCreate", "ChatMessageResponse", "ChatSessionCreate", "ChatSessionResponse",
-    "FraudReportCreate", "FraudReportResponse"
+    "User",
+    "UserCreate",
+    "UserUpdate",
+    "BreachExposure",
+    "IOC",
+    "ThreatFeed",
+    "ThreatAlert",
+    "IOCCreate",
+    "IOCResponse",
+    "ThreatAlertCreate",
+    "ThreatAlertResponse",
+    "ChatSession",
+    "ChatMessage",
+    "FraudReport",
+    "SecurityAdvisor",
+    "ChatMessageCreate",
+    "ChatMessageResponse",
+    "ChatSessionCreate",
+    "ChatSessionResponse",
+    "FraudReportCreate",
+    "FraudReportResponse",
 ]

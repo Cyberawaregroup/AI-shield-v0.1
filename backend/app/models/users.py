@@ -1,38 +1,92 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
-from datetime import datetime
-import json
+import datetime
+from typing import List, Optional
 
-Base = declarative_base()
+import orjson as json
+from pydantic import BaseModel, EmailStr
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy import orm
+
+from app.core import utils
+from app.core.database import Base
+
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_email_is_active", "email", "is_active"),
+        Index("ix_users_role_is_active", "role", "is_active"),
+        Index("ix_users_is_vulnerable_risk_score", "is_vulnerable", "risk_score"),
+        CheckConstraint("age IS NULL OR age > 0", name="ck_users_age_positive"),
+        CheckConstraint(
+            "vulnerability_score >= 0.0 AND vulnerability_score <= 100.0",
+            name="ck_users_vulnerability_score_range",
+        ),
+        CheckConstraint(
+            "risk_score >= 0.0 AND risk_score <= 100.0",
+            name="ck_users_risk_score_range",
+        ),
+        CheckConstraint("total_breaches >= 0", name="ck_users_total_breaches_positive"),
+        CheckConstraint(
+            "total_phishing_attempts >= 0",
+            name="ck_users_total_phishing_attempts_positive",
+        ),
+        CheckConstraint("length(email) > 0", name="ck_users_email_not_empty"),
+        CheckConstraint("length(name) > 0", name="ck_users_name_not_empty"),
+    )
 
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    phone = Column(String, nullable=True)
-    name = Column(String, nullable=False)
-    role = Column(String, default="user")
-    hashed_password = Column(String, nullable=True)
-    is_active = Column(Boolean, default=True)
-    
+    id: orm.Mapped[int] = orm.mapped_column(Integer, primary_key=True, index=True)
+    email: orm.Mapped[str] = orm.mapped_column(
+        String(255), unique=True, index=True, nullable=False
+    )
+    phone: orm.Mapped[str | None] = orm.mapped_column(String(20), nullable=True)
+    name: orm.Mapped[str] = orm.mapped_column(String(255), nullable=False)
+    role: orm.Mapped[str] = orm.mapped_column(
+        String(50), default="user", nullable=False
+    )
+    hashed_password: orm.Mapped[str | None] = orm.mapped_column(
+        String(255), nullable=True
+    )
+    is_active: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=True, nullable=False
+    )
+
     # Vulnerability assessment
-    age = Column(Integer, nullable=True)
-    is_vulnerable = Column(Boolean, default=False)
-    vulnerability_factors = Column(Text, default="[]")  # JSON string
-    vulnerability_score = Column(Float, default=0.0)
-    
+    age: orm.Mapped[int | None] = orm.mapped_column(Integer, nullable=True)
+    is_vulnerable: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    vulnerability_factors: orm.Mapped[str] = orm.mapped_column(
+        Text, default="[]", nullable=False
+    )  # JSON string
+    vulnerability_score: orm.Mapped[float] = orm.mapped_column(
+        Float, default=0.0, nullable=False
+    )
+
     # Security metrics
-    risk_score = Column(Float, default=0.0)
-    total_breaches = Column(Integer, default=0)
-    total_phishing_attempts = Column(Integer, default=0)
-    
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    risk_score: orm.Mapped[float] = orm.mapped_column(
+        Float, default=0.0, nullable=False
+    )
+    total_breaches: orm.Mapped[int] = orm.mapped_column(
+        Integer, default=0, nullable=False
+    )
+    total_phishing_attempts: orm.Mapped[int] = orm.mapped_column(
+        Integer, default=0, nullable=False
+    )
+    created_at: orm.Mapped[datetime.datetime] = orm.mapped_column(
+        DateTime(timezone=True), default=utils.now, nullable=False
+    )
+    updated_at: orm.Mapped[datetime.datetime] = orm.mapped_column(
+        DateTime(timezone=True), default=utils.now, onupdate=utils.now, nullable=False
+    )
 
     @property
     def vulnerability_factors_list(self) -> List[str]:
@@ -45,23 +99,6 @@ class User(Base):
     @vulnerability_factors_list.setter
     def vulnerability_factors_list(self, value: List[str]):
         """Set vulnerability factors from a list"""
-        self.vulnerability_factors = json.dumps(value)
+        self.vulnerability_factors = json.dumps(value).decode()
 
-# Pydantic models for API requests/responses
-class UserCreate(BaseModel):
-    email: EmailStr
-    phone: Optional[str] = None
-    name: str
-    role: str = "user"
-    age: Optional[int] = None
-    vulnerability_factors: Optional[List[str]] = []
 
-class UserUpdate(BaseModel):
-    phone: Optional[str] = None
-    name: Optional[str] = None
-    role: Optional[str] = None
-    age: Optional[int] = None
-    vulnerability_factors: Optional[List[str]] = None
-    risk_score: Optional[float] = None
-    total_breaches: Optional[int] = None
-    total_phishing_attempts: Optional[int] = None

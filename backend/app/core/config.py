@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     ENABLE_METRICS: bool = True
     METRICS_PORT: int = 9090
 
+    TIMEZONE: typing.Optional[str] = "UTC"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

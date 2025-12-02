@@ -3,21 +3,19 @@ import logging.config
 import sys
 from pathlib import Path
 from app.core.config import settings
+from importlib.util import find_spec
 
-# Detect optional json logger
-try:
-    import pythonjsonlogger  # noqa: F401
-    _HAS_JSON_LOGGER = True
-except Exception:
-    _HAS_JSON_LOGGER = False
+
+_HAS_JSON_LOGGER = find_spec("pythonjsonlogger") is not None
+
 
 def setup_logging():
     """Setup logging configuration for the application"""
-    
+
     # Create logs directory if it doesn't exist
     log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
-    
+    log_dir.mkdir(exist_ok=True, mode=0o755)
+
     # Build formatters with optional JSON formatter only if available
     formatters = {
         "default": {
@@ -83,14 +81,14 @@ def setup_logging():
             },
         },
     }
-    
+
     # Apply logging configuration
     logging.config.dictConfig(logging_config)
-    
+
     # Set specific logger levels
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
-    
+
     # Log startup message
     logger = logging.getLogger(__name__)
     logger.info("Logging configuration initialized")

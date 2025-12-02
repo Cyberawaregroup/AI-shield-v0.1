@@ -1,36 +1,72 @@
 from datetime import datetime
-from enum import Enum
-import json
 from typing import Any, Dict, List, Optional
 
+import orjson as json
 from pydantic import BaseModel
 from sqlalchemy import (
     Boolean,
-    Column,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
 )
+from sqlalchemy import orm
+
+from app.core import utils
 from app.core.database import Base
 
 
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
+    __table_args__ = (
+        Index("ix_chat_sessions_user_id_status", "user_id", "status"),
+        Index("ix_chat_sessions_status_risk_level", "status", "risk_level"),
+        Index("ix_chat_sessions_created_at_status", "created_at", "status"),
+        CheckConstraint(
+            "status IN ('active', 'closed', 'escalated', 'archived')",
+            name="ck_chat_sessions_status_valid",
+        ),
+        CheckConstraint(
+            "risk_level IN ('low', 'medium', 'high', 'critical')",
+            name="ck_chat_sessions_risk_level_valid",
+        ),
+        CheckConstraint(
+            "length(session_id) > 0",
+            name="ck_chat_sessions_session_id_not_empty",
+        ),
+    )
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    session_id = Column(String, unique=True, index=True)
-    status = Column(String, default="active")
-    risk_level = Column(String, default="low")
-    vulnerability_factors = Column(Text, default="[]")  # JSON string
-    escalation_reason = Column(Text, nullable=True)
-    escalated_to = Column(String, nullable=True)
-    escalated_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: orm.Mapped[int] = orm.mapped_column(Integer, primary_key=True, index=True)
+    user_id: orm.Mapped[int | None] = orm.mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True, index=True
+    )
+    session_id: orm.Mapped[str] = orm.mapped_column(
+        String(255), unique=True, index=True, nullable=False
+    )
+    status: orm.Mapped[str] = orm.mapped_column(
+        String(50), default="active", nullable=False
+    )
+    risk_level: orm.Mapped[str] = orm.mapped_column(
+        String(50), default="low", nullable=False
+    )
+    vulnerability_factors: orm.Mapped[str] = orm.mapped_column(
+        Text, default="[]", nullable=False
+    )  # JSON string
+    escalation_reason: orm.Mapped[str | None] = orm.mapped_column(Text, nullable=True)
+    escalated_to: orm.Mapped[str | None] = orm.mapped_column(String(255), nullable=True)
+    escalated_at: orm.Mapped[datetime | None] = orm.mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: orm.Mapped[datetime] = orm.mapped_column(
+        DateTime(timezone=True), default=utils.now, nullable=False
+    )
+    updated_at: orm.Mapped[datetime] = orm.mapped_column(
+        DateTime(timezone=True), default=utils.now, onupdate=utils.now, nullable=False
+    )
 
     @property
     def vulnerability_factors_list(self) -> List[str]:
@@ -43,31 +79,56 @@ class ChatSession(Base):
     @vulnerability_factors_list.setter
     def vulnerability_factors_list(self, value: List[str]):
         """Set vulnerability factors from a list"""
-        self.vulnerability_factors = json.dumps(value)
+        self.vulnerability_factors = json.dumps(value).decode()
 
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
+    __table_args__ = (
+        Index("ix_chat_messages_session_id_message_type", "session_id", "message_type"),
+        Index("ix_chat_messages_created_at_message_type", "created_at", "message_type"),
+        Index("ix_chat_messages_ai_model_ai_confidence", "ai_model", "ai_confidence"),
+        CheckConstraint(
+            "message_type IN ('user', 'assistant', 'system', 'error')",
+            name="ck_chat_messages_message_type_valid",
+        ),
+        CheckConstraint(
+            "ai_confidence IS NULL OR (ai_confidence >= 0.0 AND ai_confidence <= 1.0)",
+            name="ck_chat_messages_ai_confidence_range",
+        ),
+        CheckConstraint(
+            "length(content) > 0",
+            name="ck_chat_messages_content_not_empty",
+        ),
+        CheckConstraint(
+            "user_feedback IS NULL OR user_feedback IN ('positive', 'negative', 'neutral')",
+            name="ck_chat_messages_user_feedback_valid",
+        ),
+    )
 
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("chat_sessions.id"), index=True)
-    message_type = Column(String, nullable=False)
-    content = Column(Text, nullable=False)
-    message_metadata = Column(
-        Text, default="{}"
-    )  # JSON string instead of Dict[str, Any]
+    id: orm.Mapped[int] = orm.mapped_column(Integer, primary_key=True, index=True)
+    session_id: orm.Mapped[int] = orm.mapped_column(
+        Integer, ForeignKey("chat_sessions.id"), index=True, nullable=False
+    )
+    message_type: orm.Mapped[str] = orm.mapped_column(String(50), nullable=False)
+    content: orm.Mapped[str] = orm.mapped_column(Text, nullable=False)
+    message_metadata: orm.Mapped[str] = orm.mapped_column(
+        Text, default="{}", nullable=False
+    )  # JSON string
 
     # AI-specific fields
-    ai_model = Column(String, nullable=True)
-    ai_confidence = Column(Float, nullable=True)
-    ai_reasoning = Column(Text, nullable=True)
+    ai_model: orm.Mapped[str | None] = orm.mapped_column(String(100), nullable=True)
+    ai_confidence: orm.Mapped[float | None] = orm.mapped_column(Float, nullable=True)
+    ai_reasoning: orm.Mapped[str | None] = orm.mapped_column(Text, nullable=True)
 
     # User interaction
-    user_feedback = Column(String, nullable=True)
-    is_helpful = Column(Boolean, nullable=True)
+    user_feedback: orm.Mapped[str | None] = orm.mapped_column(String(50), nullable=True)
+    is_helpful: orm.Mapped[bool | None] = orm.mapped_column(Boolean, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at: orm.Mapped[datetime] = orm.mapped_column(
+        DateTime(timezone=True), default=utils.now, nullable=False
+    )
 
     @property
     def metadata_dict(self) -> Dict[str, Any]:
@@ -80,28 +141,68 @@ class ChatMessage(Base):
     @metadata_dict.setter
     def metadata_dict(self, value: Dict[str, Any]):
         """Set metadata from a dictionary"""
-        self.message_metadata = json.dumps(value)
+        self.message_metadata = json.dumps(value).decode()
 
 
 class FraudReport(Base):
     __tablename__ = "fraud_reports"
+    __table_args__ = (
+        Index("ix_fraud_reports_user_id_status", "user_id", "status"),
+        Index("ix_fraud_reports_fraud_type_risk_level", "fraud_type", "risk_level"),
+        Index("ix_fraud_reports_reported_at_status", "reported_at", "status"),
+        Index("ix_fraud_reports_status_assigned_to", "status", "assigned_to"),
+        CheckConstraint(
+            "risk_level IN ('low', 'medium', 'high', 'critical')",
+            name="ck_fraud_reports_risk_level_valid",
+        ),
+        CheckConstraint(
+            "status IN ('open', 'investigating', 'resolved', 'closed', 'false_positive')",
+            name="ck_fraud_reports_status_valid",
+        ),
+        CheckConstraint(
+            "financial_loss IS NULL OR financial_loss >= 0",
+            name="ck_fraud_reports_financial_loss_positive",
+        ),
+        CheckConstraint(
+            "length(fraud_type) > 0",
+            name="ck_fraud_reports_fraud_type_not_empty",
+        ),
+        CheckConstraint(
+            "length(description) > 0",
+            name="ck_fraud_reports_description_not_empty",
+        ),
+    )
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    session_id = Column(
+    id: orm.Mapped[int] = orm.mapped_column(Integer, primary_key=True, index=True)
+    user_id: orm.Mapped[int | None] = orm.mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True, index=True
+    )
+    session_id: orm.Mapped[int | None] = orm.mapped_column(
         Integer, ForeignKey("chat_sessions.id"), nullable=True, index=True
     )
-    fraud_type = Column(String, nullable=False)
-    description = Column(Text, nullable=False)
-    risk_level = Column(String, default="medium")
-    evidence_files = Column(Text, default="[]")  # JSON string
-    evidence_links = Column(Text, default="[]")  # JSON string
-    financial_loss = Column(Float, nullable=True)
-    reported_at = Column(DateTime, default=datetime.utcnow)
-    status = Column(String, default="open")
-    assigned_to = Column(String, nullable=True)
-    resolution_notes = Column(Text, nullable=True)
-    resolved_at = Column(DateTime, nullable=True)
+    fraud_type: orm.Mapped[str] = orm.mapped_column(String(100), nullable=False)
+    description: orm.Mapped[str] = orm.mapped_column(Text, nullable=False)
+    risk_level: orm.Mapped[str] = orm.mapped_column(
+        String(50), default="medium", nullable=False
+    )
+    evidence_files: orm.Mapped[str] = orm.mapped_column(
+        Text, default="[]", nullable=False
+    )  # JSON string
+    evidence_links: orm.Mapped[str] = orm.mapped_column(
+        Text, default="[]", nullable=False
+    )  # JSON string
+    financial_loss: orm.Mapped[float | None] = orm.mapped_column(Float, nullable=True)
+    reported_at: orm.Mapped[datetime] = orm.mapped_column(
+        DateTime(timezone=True), default=utils.now, nullable=False
+    )
+    status: orm.Mapped[str] = orm.mapped_column(
+        String(50), default="open", nullable=False
+    )
+    assigned_to: orm.Mapped[str | None] = orm.mapped_column(String(255), nullable=True)
+    resolution_notes: orm.Mapped[str | None] = orm.mapped_column(Text, nullable=True)
+    resolved_at: orm.Mapped[datetime | None] = orm.mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     @property
     def evidence_files_list(self) -> List[str]:
@@ -114,7 +215,7 @@ class FraudReport(Base):
     @evidence_files_list.setter
     def evidence_files_list(self, value: List[str]):
         """Set evidence files from a list"""
-        self.evidence_files = json.dumps(value)
+        self.evidence_files = json.dumps(value).decode()
 
     @property
     def evidence_links_list(self) -> List[str]:
@@ -127,25 +228,75 @@ class FraudReport(Base):
     @evidence_links_list.setter
     def evidence_links_list(self, value: List[str]):
         """Set evidence links from a list"""
-        self.evidence_links = json.dumps(value)
+        self.evidence_links = json.dumps(value).decode()
 
 
 class SecurityAdvisor(Base):
     __tablename__ = "security_advisors"
+    __table_args__ = (
+        Index(
+            "ix_security_advisors_is_available_current_load",
+            "is_available",
+            "current_load",
+        ),
+        Index("ix_security_advisors_email_is_available", "email", "is_available"),
+        CheckConstraint(
+            "experience_years >= 0",
+            name="ck_security_advisors_experience_years_positive",
+        ),
+        CheckConstraint(
+            "current_load >= 0",
+            name="ck_security_advisors_current_load_positive",
+        ),
+        CheckConstraint(
+            "max_load > 0",
+            name="ck_security_advisors_max_load_positive",
+        ),
+        CheckConstraint(
+            "current_load <= max_load",
+            name="ck_security_advisors_current_load_lte_max",
+        ),
+        CheckConstraint(
+            "length(name) > 0",
+            name="ck_security_advisors_name_not_empty",
+        ),
+        CheckConstraint(
+            "length(email) > 0",
+            name="ck_security_advisors_email_not_empty",
+        ),
+    )
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True)
-    phone = Column(String, nullable=True)
-    specialization = Column(Text, default="[]")  # JSON string
-    certifications = Column(Text, default="[]")  # JSON string
-    experience_years = Column(Integer, default=0)
-    is_available = Column(Boolean, default=True)
-    current_load = Column(Integer, default=0)
-    max_load = Column(Integer, default=10)
-    available_hours = Column(Text, default="{}")  # JSON string
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: orm.Mapped[int] = orm.mapped_column(Integer, primary_key=True, index=True)
+    name: orm.Mapped[str] = orm.mapped_column(String(255), nullable=False)
+    email: orm.Mapped[str] = orm.mapped_column(
+        String(255), unique=True, index=True, nullable=False
+    )
+    phone: orm.Mapped[str | None] = orm.mapped_column(String(20), nullable=True)
+    specialization: orm.Mapped[str] = orm.mapped_column(
+        Text, default="[]", nullable=False
+    )  # JSON string
+    certifications: orm.Mapped[str] = orm.mapped_column(
+        Text, default="[]", nullable=False
+    )  # JSON string
+    experience_years: orm.Mapped[int] = orm.mapped_column(
+        Integer, default=0, nullable=False
+    )
+    is_available: orm.Mapped[bool] = orm.mapped_column(
+        Boolean, default=True, nullable=False
+    )
+    current_load: orm.Mapped[int] = orm.mapped_column(
+        Integer, default=0, nullable=False
+    )
+    max_load: orm.Mapped[int] = orm.mapped_column(Integer, default=10, nullable=False)
+    available_hours: orm.Mapped[str] = orm.mapped_column(
+        Text, default="{}", nullable=False
+    )  # JSON string
+    created_at: orm.Mapped[datetime] = orm.mapped_column(
+        DateTime(timezone=True), default=utils.now, nullable=False
+    )
+    updated_at: orm.Mapped[datetime] = orm.mapped_column(
+        DateTime(timezone=True), default=utils.now, onupdate=utils.now, nullable=False
+    )
 
     @property
     def specialization_list(self) -> List[str]:
@@ -158,7 +309,7 @@ class SecurityAdvisor(Base):
     @specialization_list.setter
     def specialization_list(self, value: List[str]):
         """Set specialization from a list"""
-        self.specialization = json.dumps(value)
+        self.specialization = json.dumps(value).decode()
 
     @property
     def certifications_list(self) -> List[str]:
@@ -171,7 +322,7 @@ class SecurityAdvisor(Base):
     @certifications_list.setter
     def certifications_list(self, value: List[str]):
         """Set certifications from a list"""
-        self.certifications = json.dumps(value)
+        self.certifications = json.dumps(value).decode()
 
     @property
     def available_hours_dict(self) -> Dict[str, List[str]]:
@@ -184,57 +335,6 @@ class SecurityAdvisor(Base):
     @available_hours_dict.setter
     def available_hours_dict(self, value: Dict[str, List[str]]):
         """Set available hours from a dictionary"""
-        self.available_hours = json.dumps(value)
+        self.available_hours = json.dumps(value).decode()
 
 
-# Pydantic models for API requests/responses
-class ChatMessageCreate(BaseModel):
-    content: str
-    message_type: str = "user"
-    message_metadata: Optional[Dict[str, Any]] = {}
-
-
-class ChatMessageResponse(BaseModel):
-    id: int
-    message_type: str
-    content: str
-    message_metadata: Dict[str, Any]
-    ai_model: Optional[str] = None
-    ai_confidence: Optional[float] = None
-    ai_reasoning: Optional[str] = None
-    created_at: datetime
-
-
-class ChatSessionCreate(BaseModel):
-    user_id: Optional[int] = None
-    vulnerability_factors: Optional[List[str]] = []
-
-
-class ChatSessionResponse(BaseModel):
-    id: int
-    session_id: str
-    status: str
-    risk_level: str
-    vulnerability_factors: List[str]
-    created_at: datetime
-
-
-class FraudReportCreate(BaseModel):
-    fraud_type: str
-    description: str
-    risk_level: str = "medium"
-    evidence_files: Optional[List[str]] = []
-    evidence_links: Optional[List[str]] = []
-    financial_loss: Optional[float] = None
-
-
-class FraudReportResponse(BaseModel):
-    id: int
-    fraud_type: str
-    description: str
-    risk_level: str
-    evidence_files: List[str]
-    evidence_links: List[str]
-    financial_loss: Optional[float] = None
-    status: str
-    reported_at: datetime
