@@ -12,9 +12,9 @@ from app.api.v1.schemas.threat_intelligence import (
     ThreatAlertResponse,
 )
 from app.db.threat_intelligence import BreachExposure, IOC, ThreatAlert, ThreatFeed
-from app.services.abuseipdb_service import AbuseIPDBService
-from app.services.hibp_service import HIBPService
-from app.services.phishscan_service import PhishScanService
+from app.services.abuseipdb import AbuseIPDBService
+from app.services.hibp import HIBPService
+from app.services.phishscan import PhishScanService
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +261,7 @@ class ThreatIntelligenceService:
         try:
             statement = select(ThreatFeed)
             feeds = db_session.execute(statement).scalars().all()
-            return feeds
+            return list(feeds)
         except Exception as e:
             logger.error(f"Error getting threat feeds: {str(e)}")
             return []

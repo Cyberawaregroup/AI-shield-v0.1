@@ -10,7 +10,7 @@ from app.api.v1.schemas.auth import (
     UserInfoResponse,
 )
 from app.api.v1.services.auth import auth_service
-from app.api.v1.services.base import ServiceError
+from app.services.base import ServiceError
 from app.core.db import get_session
 from app.core.security import get_user
 

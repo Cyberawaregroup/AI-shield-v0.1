@@ -5,7 +5,7 @@ import orjson as json
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.services.base import Service, ServiceError, ServiceStatus
+from app.services.base import Service, ServiceError, ServiceStatus
 from app.core import security, utils
 from app.core.utils import build_conditions
 from app.db.threat_intelligence import BreachExposure

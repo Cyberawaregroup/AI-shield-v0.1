@@ -6,6 +6,7 @@ from fastapi import HTTPException
 
 class ServiceError(Exception):
     """Custom Service Error Exception. Services should prefer raising this exception."""
+
     def __init__(
         self,
         message: str,

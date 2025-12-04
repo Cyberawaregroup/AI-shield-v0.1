@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 import uuid
 
 from app.db.types import FraudType, RiskLevel
-from app.services.huggingface_service import HuggingFaceService
+from app.services.huggingface import HuggingFaceService
 from app.services.threat_intelligence import ThreatIntelligenceService
 
 logger = logging.getLogger(__name__)

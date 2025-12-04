@@ -11,19 +11,30 @@ from app.api.v1.schemas.threat_intelligence import (
     ThreatAlertCreate,
     ThreatAlertResponse,
 )
-from app.services.abuseipdb_service import AbuseIPDBService
-from app.services.hibp_service import HIBPService
-from app.services.phishscan_service import PhishScanService
+from app.services.abuseipdb import AbuseIPDBService
+from app.services.hibp import HIBPService
+from app.services.phishscan import PhishScanService
 from app.services.threat_intelligence import ThreatIntelligenceService
 from app.api.v1.schemas.threat_intelligence import PhishingCheckRequest
+from app.clients.hibp import HIBPAsyncClient
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 # Service dependencies
-def get_hibp_service():
-    return HIBPService()
+async def get_hibp_service():
+    # Use async context manager to ensure proper cleanup
+    if settings.HIBP_API_KEY:
+        async with HIBPAsyncClient(
+            api_key=settings.HIBP_API_KEY,
+            user_agent="AI-Shield-V1",
+            timeout=30.0,
+        ) as client:
+            yield HIBPService(client=client)
+    else:
+        yield HIBPService(client=None)
 
 
 def get_abuseipdb_service():
@@ -34,8 +45,16 @@ def get_phishscan_service():
     return PhishScanService()
 
 
-def get_threat_intelligence_service():
-    return ThreatIntelligenceService()
+def get_threat_intelligence_service(
+    hibp_service: HIBPService = Depends(get_hibp_service),
+    abuseipdb_service: AbuseIPDBService = Depends(get_abuseipdb_service),
+    phishscan_service: PhishScanService = Depends(get_phishscan_service),
+):
+    return ThreatIntelligenceService(
+        hibp_service=hibp_service,
+        abuseipdb_service=abuseipdb_service,
+        phishscan_service=phishscan_service,
+    )
 
 
 @router.get("/breach-check/{email}")

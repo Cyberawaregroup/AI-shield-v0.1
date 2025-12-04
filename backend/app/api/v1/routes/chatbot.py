@@ -10,8 +10,8 @@ from app.api.v1.schemas.chatbot import (
     ChatMessageCreate,
     ChatMessageResponse,
 )
-from app.services.chatbot_service import ChatbotService
-from app.services.huggingface_service import HuggingFaceService
+from app.services.chatbot import ChatbotService
+from app.services.huggingface import HuggingFaceService
 from app.core.security import get_user
 import logging
 import json

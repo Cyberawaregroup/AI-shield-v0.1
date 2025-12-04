@@ -12,7 +12,7 @@ from app.api.v1.schemas.users import (
     UserUpdate,
     UserUpdateResponse,
 )
-from app.api.v1.services.base import ServiceError
+from app.services.base import ServiceError
 from app.api.v1.services.users import user_service
 from app.core.db import get_session
 
@@ -109,7 +109,7 @@ async def update_user(
             **updates,
         )
         await db.commit()
-        
+
         return UserUpdateResponse(
             id=db_user.id,
             email=db_user.email,
